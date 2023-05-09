@@ -6,15 +6,16 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ImageView"
         mc:Ignorable="d"
-        Title="ImageView" Height="460" Width="450">
+        Title="ImageView" Height="500" Width="500">
     <Window.DataContext>
         <local:MainWindowViewModel/>
     </Window.DataContext>
 
     <Window.Resources>
         <ContextMenu x:Key="ImageContextMenu">
-            <MenuItem Header="Copy"/>
-            <MenuItem Header="Paste"/>
+            <MenuItem Header="Something 0"/>
+            <MenuItem Header="Something 1"/>
+            <MenuItem Header="Toggle Measure" IsCheckable="True" IsChecked="{Binding IsMeasuring}"/>
         </ContextMenu>
     </Window.Resources>
 
@@ -43,7 +44,7 @@
                     </i:EventTrigger>
                 </i:Interaction.Triggers>
                 
-                <Image Source="{Binding ImgSource}" 
+                <Image Source="./Image/default.jpg" 
                        Stretch="Uniform"/>
             </Border>
 

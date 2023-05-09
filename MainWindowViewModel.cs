@@ -1,4 +1,5 @@
 ﻿using ImageView.Core;
+using System;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
@@ -10,16 +11,16 @@ namespace ImageView
 {
     public class MainWindowViewModel : ObservableObject
     {
-        private BitmapSource mImgSource;
-        public BitmapSource ImgSource
-        {
-            get { return mImgSource; }
-            set
-            {
-                mImgSource = value;
-                OnPropertyChanged();
-            }
-        }
+        //private BitmapSource mImgSource;
+        //public BitmapSource ImgSource
+        //{
+        //    get { return mImgSource; }
+        //    set
+        //    {
+        //        mImgSource = value;
+        //        OnPropertyChanged();
+        //    }
+        //}
 
         private string mInfoBottomLeft;
         public string InfoBottomLeft
@@ -31,6 +32,7 @@ namespace ImageView
                 OnPropertyChanged();
             }
         }
+
         private string mInfoBottomRight;
         public string InfoBottomRight
         {
@@ -42,6 +44,29 @@ namespace ImageView
             }
         }
 
+        private double LengthDisplay
+        {
+            set => InfoBottomRight = string.Format("{0:F1}", value);
+        }
+
+        private Point CurrentPosDisplay
+        {
+            set => InfoBottomLeft = $"{(int)value.X}, {(int)value.Y}";
+        }
+
+        private bool mIsMeasuring;
+        public bool IsMeasuring
+        {
+            get { return mIsMeasuring; }
+            set 
+            { 
+                mIsMeasuring = value;
+                if (value == false)
+                    mMeasureLine.Visibility = Visibility.Hidden;
+            }
+        }
+
+
         public RelayCommand MouseLeftButtonDownCommand { get; set; }
         public RelayCommand MouseLeftButtonUpCommand { get; set; }
         public RelayCommand MouseMoveCommand { get; set; }
@@ -52,10 +77,9 @@ namespace ImageView
 
         public MainWindowViewModel()
         {
-            ImgSource = new BitmapImage(new System.Uri("C:/Users/zzz/Desktop/tt/IA.png"));
-
             InfoBottomLeft = "Left";
-            InfoBottomRight = "Right";
+            LengthDisplay = 0;
+            IsMeasuring = true;
 
             LoadedCommand = new RelayCommand(o =>
             {
@@ -66,39 +90,43 @@ namespace ImageView
 
             MouseLeftButtonDownCommand = new RelayCommand(o =>
             {
-                InfoBottomRight = "MouseLeftButtonDownCommand";
-
                 MouseButtonEventArgs e = (MouseButtonEventArgs)o;
                 Point p = e.GetPosition(mBorder);
 
-                mMeasureLine.Visibility = Visibility.Visible;
-                mMeasureLine.X1 = p.X;
-                mMeasureLine.Y1 = p.Y;
-                mMeasureLine.X2 = p.X;
-                mMeasureLine.Y2 = p.Y;
+                if (IsMeasuring)
+                {
+                    mMeasureLine.Visibility = Visibility.Visible;
+                    mMeasureLine.X1 = p.X;
+                    mMeasureLine.Y1 = p.Y;
+                    mMeasureLine.X2 = p.X;
+                    mMeasureLine.Y2 = p.Y;
+                }
             });
 
             MouseLeftButtonUpCommand = new RelayCommand(o =>
             {
-                InfoBottomRight = "MouseLeftButtonUpCommand";
-
-                MouseButtonEventArgs e = (MouseButtonEventArgs)o;
-                Point p = e.GetPosition(mBorder);
             });
 
             MouseMoveCommand = new RelayCommand(o =>
             {
                 MouseEventArgs e = (MouseEventArgs)o;
-                if (e.LeftButton != MouseButtonState.Pressed)
-                    return;
-
                 Point p = e.GetPosition(mBorder);
 
-                mMeasureLine.X2 = p.X;
-                mMeasureLine.Y2 = p.Y;
+                CurrentPosDisplay = p;
 
-                InfoBottomLeft = $"{(int)p.X}, {(int)p.Y}";
+                if (e.LeftButton == MouseButtonState.Pressed && IsMeasuring)
+                {
+                    mMeasureLine.X2 = p.X;
+                    mMeasureLine.Y2 = p.Y;
+
+                    LengthDisplay = distance(new Point(mMeasureLine.X1, mMeasureLine.Y1), p);
+                }
             });
+        }
+
+        public static double distance(Point p1, Point p2)
+        {
+            return Math.Sqrt((p1.X - p2.X) * (p1.X - p2.X) + (p1.Y - p2.Y) * (p1.Y - p2.Y));
         }
     }
 }
