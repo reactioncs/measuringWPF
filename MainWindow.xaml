@@ -50,9 +50,12 @@
 
             <Canvas>
                 <Line x:Name="MeasureLine"
-                      X1="0" Y1="0" X2="0" Y2="0" 
+                      X1="{Binding MeasuringLine.P1.X}" 
+                      Y1="{Binding MeasuringLine.P1.Y}" 
+                      X2="{Binding MeasuringLine.P2.X}" 
+                      Y2="{Binding MeasuringLine.P2.Y}" 
                       Stroke="red" StrokeThickness="1" 
-                      Visibility="Hidden"/>
+                      Visibility="{Binding MeasuringLine.Visibility}"/>
             </Canvas>
         </Grid>
 
