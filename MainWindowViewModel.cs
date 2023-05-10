@@ -30,17 +30,26 @@ namespace ImageView
             }
         }
 
+        private Cursor mCursor;
+        public Cursor Cursor
+        {
+            get { return mCursor; }
+            set
+            {
+                mCursor = value;
+                OnPropertyChanged();
+            }
+        }
+
         private double LengthDisplay
         {
-            set => InfoBottomRight = string.Format("{0:F1}", value);
+            set => InfoBottomRight = string.Format("{0:F2}", value);
         }
 
         private Point CurrentPosDisplay
         {
             set => InfoBottomLeft = $"{(int)value.X}, {(int)value.Y}";
         }
-
-        public LineModel MeasuringLine { get; set; }
 
         private bool mIsMeasuring;
         public bool IsMeasuring
@@ -50,11 +59,20 @@ namespace ImageView
             { 
                 mIsMeasuring = value;
                 if (value == false)
-                    MeasuringLine.Visibility = Visibility.Hidden;
+                {
+                    mMeasuringCanvasModel?.SetVisibility(Visibility.Hidden);
+                    Cursor = Cursors.Arrow;
+                }
+                else
+                {
+                    Cursor = Cursors.Cross;
+                }
             }
         }
 
         private Border mBorder;
+        private Canvas mMeasuringCanvas;
+        private MeasuringCanvasModel mMeasuringCanvasModel;
 
         public RelayCommand MouseLeftButtonDownCommand { get; set; }
         public RelayCommand MouseLeftButtonUpCommand { get; set; }
@@ -65,13 +83,17 @@ namespace ImageView
         {
             InfoBottomLeft = "Left";
             LengthDisplay = 0;
-            IsMeasuring = true;
-            MeasuringLine = new LineModel();
+            IsMeasuring = false;
+            Cursor = Cursors.Arrow;
 
             LoadedCommand = new RelayCommand(o =>
             {
                 RoutedEventArgs e = (RoutedEventArgs)o;
-                mBorder = (Border)e.Source;
+                Grid grid = (Grid)e.Source;
+
+                mBorder = (Border)grid.FindName("Border");
+                mMeasuringCanvas = (Canvas)grid.FindName("MeasuringCanvas");
+                mMeasuringCanvasModel = new MeasuringCanvasModel(mMeasuringCanvas);
             });
 
             MouseLeftButtonDownCommand = new RelayCommand(o =>
@@ -81,9 +103,9 @@ namespace ImageView
 
                 if (IsMeasuring)
                 {
-                    MeasuringLine.P1 = p;
-                    MeasuringLine.P2 = p;
-                    MeasuringLine.Visibility = Visibility.Visible;
+                    mMeasuringCanvasModel.SetVisibility(Visibility.Visible);
+                    mMeasuringCanvasModel.SetStartPoint(p);
+                    mMeasuringCanvasModel.SetEndPoint(p);
                 }
             });
 
@@ -97,13 +119,15 @@ namespace ImageView
                 Point p = e.GetPosition(mBorder);
 
                 CurrentPosDisplay = p;
-
+                                                                                                                                                                                                                     
                 if (e.LeftButton == MouseButtonState.Pressed && IsMeasuring)
                 {
-                    MeasuringLine.P2 = p;
+                    mMeasuringCanvasModel.SetEndPoint(p);
 
-                    LengthDisplay = MeasuringLine.Distance;
+                    LengthDisplay = mMeasuringCanvasModel.Distance;
                 }
+
+                //Thread.Sleep(100);
             });
         }
     }

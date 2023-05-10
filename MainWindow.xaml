@@ -19,44 +19,38 @@
         </ContextMenu>
     </Window.Resources>
 
-    <Grid Margin="5">
+    <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
             <RowDefinition Height ="15"/>
         </Grid.RowDefinitions>
         <Grid Background="Transparent"
-              ContextMenu="{StaticResource ImageContextMenu}">
-            <Border Background="Transparent"
+              ContextMenu="{StaticResource ImageContextMenu}"
+              Cursor="{Binding Cursor}">
+            <i:Interaction.Triggers>
+                <i:EventTrigger EventName="Loaded">
+                    <i:InvokeCommandAction Command="{Binding LoadedCommand}" PassEventArgsToCommand="True"/>
+                </i:EventTrigger>
+                <i:EventTrigger EventName="MouseLeftButtonDown">
+                    <i:InvokeCommandAction Command="{Binding MouseLeftButtonDownCommand}" PassEventArgsToCommand="True"/>
+                </i:EventTrigger>
+                <i:EventTrigger EventName="MouseLeftButtonUp">
+                    <i:InvokeCommandAction Command="{Binding MouseLeftButtonUpCommand}" PassEventArgsToCommand="True"/>
+                </i:EventTrigger>
+                <i:EventTrigger EventName="MouseMove">
+                    <i:InvokeCommandAction Command="{Binding MouseMoveCommand}" PassEventArgsToCommand="True"/>
+                </i:EventTrigger>
+            </i:Interaction.Triggers>
+
+            <Border x:Name="Border"
+                    Background="Transparent"
                     BorderBrush="Black"
                     BorderThickness="1">
-                <i:Interaction.Triggers>
-                    <i:EventTrigger EventName="Loaded">
-                        <i:InvokeCommandAction Command="{Binding LoadedCommand}" PassEventArgsToCommand="True"/>
-                    </i:EventTrigger>
-                    <i:EventTrigger EventName="MouseLeftButtonDown">
-                        <i:InvokeCommandAction Command="{Binding MouseLeftButtonDownCommand}" PassEventArgsToCommand="True"/>
-                    </i:EventTrigger>
-                    <i:EventTrigger EventName="MouseLeftButtonUp">
-                        <i:InvokeCommandAction Command="{Binding MouseLeftButtonUpCommand}" PassEventArgsToCommand="True"/>
-                    </i:EventTrigger>
-                    <i:EventTrigger EventName="MouseMove">
-                        <i:InvokeCommandAction Command="{Binding MouseMoveCommand}" PassEventArgsToCommand="True"/>
-                    </i:EventTrigger>
-                </i:Interaction.Triggers>
-                
                 <Image Source="./Image/default.jpg" 
                        Stretch="Uniform"/>
             </Border>
 
-            <Canvas>
-                <Line x:Name="MeasureLine"
-                      X1="{Binding MeasuringLine.P1.X}" 
-                      Y1="{Binding MeasuringLine.P1.Y}" 
-                      X2="{Binding MeasuringLine.P2.X}" 
-                      Y2="{Binding MeasuringLine.P2.Y}" 
-                      Stroke="red" StrokeThickness="1" 
-                      Visibility="{Binding MeasuringLine.Visibility}"/>
-            </Canvas>
+            <Canvas x:Name="MeasuringCanvas" ClipToBounds="True"/>
         </Grid>
 
         <Grid Grid.Row="1">
