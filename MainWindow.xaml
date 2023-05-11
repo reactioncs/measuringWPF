@@ -31,6 +31,9 @@
                 <i:EventTrigger EventName="Loaded">
                     <i:InvokeCommandAction Command="{Binding LoadedCommand}" PassEventArgsToCommand="True"/>
                 </i:EventTrigger>
+                <i:EventTrigger EventName="SizeChanged">
+                    <i:InvokeCommandAction Command="{Binding SizeChangedCommand}" PassEventArgsToCommand="True"/>
+                </i:EventTrigger>
                 <i:EventTrigger EventName="MouseLeftButtonDown">
                     <i:InvokeCommandAction Command="{Binding MouseLeftButtonDownCommand}" PassEventArgsToCommand="True"/>
                 </i:EventTrigger>
@@ -47,7 +50,7 @@
                     BorderBrush="Black"
                     BorderThickness="1">
                 <Image Source="./Image/default.jpg" 
-                       Stretch="Uniform"/>
+                       Stretch="Fill"/>
             </Border>
 
             <Canvas x:Name="MeasuringCanvas" ClipToBounds="True"/>

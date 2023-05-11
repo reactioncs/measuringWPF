@@ -14,7 +14,9 @@ namespace ImageView.Model
         public double DistanceFixed { get; set; }
         public bool IsMeasuring { get; set; }
 
-        private readonly Canvas mCanvas;
+        private readonly Canvas CurrentCanvas;
+        private double CanvasHeight;
+        private double CanvasWidth;
         private Brush Brush0;
         private Brush Brush1;
         private ObservableCollection<Line> Lines;
@@ -23,7 +25,9 @@ namespace ImageView.Model
 
         public MeasuringCanvasModel(Canvas canvas)
         {
-            mCanvas = canvas;
+            CurrentCanvas = canvas;
+            CanvasHeight = canvas.ActualHeight;
+            CanvasWidth = canvas.ActualWidth;
 
             Lines = new ObservableCollection<Line>();
             TextBlocks = new ObservableCollection<TextBlock>();
@@ -80,7 +84,7 @@ namespace ImageView.Model
                 TextBlocks.Add(newTextBlock);
                 Canvas.SetLeft(newTextBlock, p.X + 3);
                 Canvas.SetTop(newTextBlock, p.Y + 3);
-                mCanvas.Children.Add(newTextBlock);
+                CurrentCanvas.Children.Add(newTextBlock);
             }
             P2 = p;
 
@@ -94,7 +98,7 @@ namespace ImageView.Model
                 StrokeThickness = 3
             };
             Lines.Add(newLine);
-            mCanvas.Children.Add(newLine);
+            CurrentCanvas.Children.Add(newLine);
 
             CurrentLineCount += 1;
             IsMeasuring = true;
@@ -104,7 +108,7 @@ namespace ImageView.Model
         public void MouseUp()
         {
             Line lastLine = Lines.Last();
-            mCanvas.Children.Remove(lastLine);
+            CurrentCanvas.Children.Remove(lastLine);
             Lines.Remove(lastLine);
             CurrentLineCount -= 1; 
 
@@ -119,7 +123,7 @@ namespace ImageView.Model
             else
             {
                 TextBlock lastTextBlock = TextBlocks.Last();
-                mCanvas.Children.Remove(lastTextBlock);
+                CurrentCanvas.Children.Remove(lastTextBlock);
                 TextBlocks.Remove(lastTextBlock);
             }
 
@@ -135,19 +139,43 @@ namespace ImageView.Model
 
             foreach (Line line in Lines) 
             {
-                mCanvas.Children.Remove(line);
+                CurrentCanvas.Children.Remove(line);
             }
             Lines.Clear();
             foreach (TextBlock textBlock in TextBlocks)
             {
-                mCanvas.Children.Remove(textBlock);
+                CurrentCanvas.Children.Remove(textBlock);
             }
             TextBlocks.Clear();
 
             SetVisibility(Visibility.Hidden);
         }
 
-        public void SetVisibility(Visibility visibility) => mCanvas.Visibility = visibility;
+        public void Resize()
+        {
+            double resizeRatioHeight = CurrentCanvas.ActualHeight / CanvasHeight;
+            double resizeRatioWidth = CurrentCanvas.ActualWidth / CanvasWidth;
+
+            foreach (Line line in Lines)
+            {
+                line.X1 *= resizeRatioWidth;
+                line.Y1 *= resizeRatioHeight;
+                line.X2 *= resizeRatioWidth;
+                line.Y2 *= resizeRatioHeight;
+            }
+            foreach (TextBlock textBlock in TextBlocks)
+            {
+                double textBlockX = Canvas.GetLeft(textBlock);
+                double textBlockY = Canvas.GetTop(textBlock);
+                Canvas.SetLeft(textBlock, textBlockX * resizeRatioWidth);
+                Canvas.SetTop(textBlock, textBlockY * resizeRatioHeight);
+            }
+
+            CanvasHeight = CurrentCanvas.ActualHeight;
+            CanvasWidth = CurrentCanvas.ActualWidth;
+        }
+
+        public void SetVisibility(Visibility visibility) => CurrentCanvas.Visibility = visibility;
 
         private static double GetDistance(Line line) 
         {

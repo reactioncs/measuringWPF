@@ -79,6 +79,7 @@ namespace ImageView
         public RelayCommand MouseRightButtonUpCommand { get; set; }
         public RelayCommand MouseMoveCommand { get; set; }
         public RelayCommand LoadedCommand { get; set; }
+        public RelayCommand SizeChangedCommand { get; set; }
 
         public MainWindowViewModel()
         {
@@ -94,6 +95,14 @@ namespace ImageView
                 mBorder = (Border)grid.FindName("Border");
                 Canvas measuringCanvas = (Canvas)grid.FindName("MeasuringCanvas");
                 MeasuringCanvasModel = new MeasuringCanvasModel(measuringCanvas);
+            });
+
+            SizeChangedCommand = new RelayCommand(o =>
+            {
+                if (IsMeasuringMode)
+                {
+                    MeasuringCanvasModel.Resize();
+                }
             });
 
             MouseLeftButtonDownCommand = new RelayCommand(o =>
