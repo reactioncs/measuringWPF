@@ -10,21 +10,27 @@ namespace ImageView.Model
 {
     public class MeasuringCanvasModel
     {
-        public double Distance { get; set; }
+        public double DistanceRefresh { get; set; }
+        public double DistanceFixed { get; set; }
         public bool IsMeasuring { get; set; }
 
-        private Canvas mCanvas;
+        private readonly Canvas mCanvas;
         private Brush Brush0;
         private Brush Brush1;
         private ObservableCollection<Line> Lines;
         private ObservableCollection<TextBlock> TextBlocks;
         private int CurrentLineCount;
-        private double DistanceFixed;
 
         public MeasuringCanvasModel(Canvas canvas)
         {
             mCanvas = canvas;
-            MeasuringCanvasInit();
+
+            Lines = new ObservableCollection<Line>();
+            TextBlocks = new ObservableCollection<TextBlock>();
+            Brush0 = new SolidColorBrush(Color.FromRgb(255, 0, 0));
+            Brush1 = new SolidColorBrush(Color.FromRgb(200, 150, 150));
+
+            Reset();
         }
 
         public void MouseMove(Point p) 
@@ -35,16 +41,21 @@ namespace ImageView.Model
             lastLine.X2 = p.X;  
             lastLine.Y2 = p.Y;
 
-            Distance = DistanceFixed + GetDistance(lastLine);
+            DistanceRefresh = DistanceFixed + GetDistance(lastLine);
 
             Canvas.SetLeft(lastTextBlock, p.X + 3);
             Canvas.SetTop(lastTextBlock, p.Y + 3);
-            lastTextBlock.Text = string.Format("{0:F1} um", Distance);
+            lastTextBlock.Text = string.Format("{0:F1} um", DistanceRefresh);
         }
 
         public void MouseDown(Point p)
         {
             Point P1, P2;
+
+            if (IsMeasuring == false)
+            {
+                Reset();
+            }
 
             if (CurrentLineCount > 0) 
             {
@@ -67,8 +78,8 @@ namespace ImageView.Model
                     FontSize = 16
                 };
                 TextBlocks.Add(newTextBlock);
-                Canvas.SetLeft(newTextBlock, -50);
-                Canvas.SetTop(newTextBlock, -50);
+                Canvas.SetLeft(newTextBlock, p.X + 3);
+                Canvas.SetTop(newTextBlock, p.Y + 3);
                 mCanvas.Children.Add(newTextBlock);
             }
             P2 = p;
@@ -111,6 +122,7 @@ namespace ImageView.Model
                 mCanvas.Children.Remove(lastTextBlock);
                 TextBlocks.Remove(lastTextBlock);
             }
+
             IsMeasuring = false;
             CurrentLineCount = 0;
         }
@@ -135,22 +147,9 @@ namespace ImageView.Model
             SetVisibility(Visibility.Hidden);
         }
 
-        public void SetVisibility(Visibility visibility)
-        {
-            mCanvas.Visibility = visibility;
-        }
+        public void SetVisibility(Visibility visibility) => mCanvas.Visibility = visibility;
 
-        private void MeasuringCanvasInit()
-        {
-            Lines = new ObservableCollection<Line>();
-            TextBlocks = new ObservableCollection<TextBlock>();
-            Brush0 = new SolidColorBrush(Color.FromRgb(255, 0, 0));
-            Brush1 = new SolidColorBrush(Color.FromRgb(200, 150, 150));
-
-            Reset();
-        }
-
-        private double GetDistance(Line line) 
+        private static double GetDistance(Line line) 
         {
             return Math.Sqrt((line.X1 - line.X2) * (line.X1 - line.X2) + (line.Y1 - line.Y2) * (line.Y1 - line.Y2));
         }

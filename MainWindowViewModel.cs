@@ -72,7 +72,6 @@ namespace ImageView
         }
 
         private Border mBorder;
-        private Canvas mMeasuringCanvas;
 
         public MeasuringCanvasModel MeasuringCanvasModel { get; set; }
 
@@ -93,8 +92,8 @@ namespace ImageView
                 Grid grid = (Grid)e.Source;
 
                 mBorder = (Border)grid.FindName("Border");
-                mMeasuringCanvas = (Canvas)grid.FindName("MeasuringCanvas");
-                MeasuringCanvasModel = new MeasuringCanvasModel(mMeasuringCanvas);
+                Canvas measuringCanvas = (Canvas)grid.FindName("MeasuringCanvas");
+                MeasuringCanvasModel = new MeasuringCanvasModel(measuringCanvas);
             });
 
             MouseLeftButtonDownCommand = new RelayCommand(o =>
@@ -118,8 +117,7 @@ namespace ImageView
                 if (MeasuringCanvasModel.IsMeasuring && IsMeasuringMode)
                 {
                     MeasuringCanvasModel.MouseMove(p);
-
-                    LengthDisplay = MeasuringCanvasModel.Distance;
+                    LengthDisplay = MeasuringCanvasModel.DistanceRefresh;
                 }
             });
 
@@ -130,6 +128,8 @@ namespace ImageView
                 if (MeasuringCanvasModel.IsMeasuring && IsMeasuringMode)
                 {
                     MeasuringCanvasModel.MouseUp();
+                    LengthDisplay = MeasuringCanvasModel.DistanceFixed;
+
                     e.Handled = true;
                 }
             });
