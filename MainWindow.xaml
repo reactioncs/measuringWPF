@@ -15,7 +15,7 @@
         <ContextMenu x:Key="ImageContextMenu">
             <MenuItem Header="Something 0"/>
             <MenuItem Header="Something 1"/>
-            <MenuItem Header="Toggle Measure" IsCheckable="True" IsChecked="{Binding IsMeasuring}"/>
+            <MenuItem Header="Toggle Measure" IsCheckable="True" IsChecked="{Binding IsMeasuringMode}"/>
         </ContextMenu>
     </Window.Resources>
 
@@ -34,8 +34,8 @@
                 <i:EventTrigger EventName="MouseLeftButtonDown">
                     <i:InvokeCommandAction Command="{Binding MouseLeftButtonDownCommand}" PassEventArgsToCommand="True"/>
                 </i:EventTrigger>
-                <i:EventTrigger EventName="MouseLeftButtonUp">
-                    <i:InvokeCommandAction Command="{Binding MouseLeftButtonUpCommand}" PassEventArgsToCommand="True"/>
+                <i:EventTrigger EventName="MouseRightButtonUp">
+                    <i:InvokeCommandAction Command="{Binding MouseRightButtonUpCommand}" PassEventArgsToCommand="True"/>
                 </i:EventTrigger>
                 <i:EventTrigger EventName="MouseMove">
                     <i:InvokeCommandAction Command="{Binding MouseMoveCommand}" PassEventArgsToCommand="True"/>

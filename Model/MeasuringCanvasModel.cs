@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.ObjectModel;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -8,43 +10,129 @@ namespace ImageView.Model
 {
     public class MeasuringCanvasModel
     {
+        public double Distance { get; set; }
+        public bool IsMeasuring { get; set; }
+
         private Canvas mCanvas;
-        private Line mLine;
-        private TextBlock mTextBlock;
+        private Brush Brush0;
+        private Brush Brush1;
+        private ObservableCollection<Line> Lines;
+        private ObservableCollection<TextBlock> TextBlocks;
+        private int CurrentLineCount;
+        private double DistanceFixed;
 
-        private Point P1;
-        private Point P2;
-
-        public double Distance
-        {
-            get => Math.Sqrt((P1.X - P2.X) * (P1.X - P2.X) + (P1.Y - P2.Y) * (P2.Y - P2.Y));
-        }
-
-        public MeasuringCanvasModel(Canvas canvas) 
+        public MeasuringCanvasModel(Canvas canvas)
         {
             mCanvas = canvas;
-
             MeasuringCanvasInit();
         }
 
-        public void SetStartPoint(Point p)
+        public void MouseMove(Point p) 
         {
-            P1 = p;
+            Line lastLine = Lines.Last();
+            TextBlock lastTextBlock = TextBlocks.Last();
 
-            mLine.X1 = p.X;
-            mLine.Y1 = p.Y;
+            lastLine.X2 = p.X;  
+            lastLine.Y2 = p.Y;
+
+            Distance = DistanceFixed + GetDistance(lastLine);
+
+            Canvas.SetLeft(lastTextBlock, p.X + 3);
+            Canvas.SetTop(lastTextBlock, p.Y + 3);
+            lastTextBlock.Text = string.Format("{0:F1} um", Distance);
         }
 
-        public void SetEndPoint(Point p)
+        public void MouseDown(Point p)
         {
+            Point P1, P2;
+
+            if (CurrentLineCount > 0) 
+            {
+                Line lastLine = Lines.Last();
+                P1.X = lastLine.X2;
+                P1.Y = lastLine.Y2;
+                DistanceFixed += GetDistance(lastLine);
+
+                Lines.Last().Stroke = Brush0;
+            }
+            else
+            {
+                P1 = p;
+
+                TextBlock newTextBlock = new()
+                {
+                    Text = "0.0 um",
+                    Foreground = Brush0,
+                    FontFamily = new FontFamily("Consolas"),
+                    FontSize = 16
+                };
+                TextBlocks.Add(newTextBlock);
+                Canvas.SetLeft(newTextBlock, -50);
+                Canvas.SetTop(newTextBlock, -50);
+                mCanvas.Children.Add(newTextBlock);
+            }
             P2 = p;
 
-            mLine.X2 = p.X;
-            mLine.Y2 = p.Y;
+            Line newLine = new() 
+            {
+                X1 = P1.X,
+                Y1 = P1.Y,
+                X2 = P2.X,
+                Y2 = P2.Y,
+                Stroke = Brush1,
+                StrokeThickness = 3
+            };
+            Lines.Add(newLine);
+            mCanvas.Children.Add(newLine);
 
-            Canvas.SetLeft(mTextBlock, p.X + 3);
-            Canvas.SetTop(mTextBlock, p.Y + 3);
-            mTextBlock.Text = string.Format("{0:F1}", Distance);
+            CurrentLineCount += 1;
+            IsMeasuring = true;
+            SetVisibility(Visibility.Visible);
+        }
+
+        public void MouseUp()
+        {
+            Line lastLine = Lines.Last();
+            mCanvas.Children.Remove(lastLine);
+            Lines.Remove(lastLine);
+            CurrentLineCount -= 1; 
+
+            if (CurrentLineCount > 0)
+            {
+                Line nextLastLine = Lines.Last();
+                TextBlock lastTextBlock = TextBlocks.Last();
+                lastTextBlock.Text = string.Format("{0:F1} um", DistanceFixed);
+                Canvas.SetLeft(lastTextBlock, nextLastLine.X2);
+                Canvas.SetTop(lastTextBlock, nextLastLine.Y2);
+            }
+            else
+            {
+                TextBlock lastTextBlock = TextBlocks.Last();
+                mCanvas.Children.Remove(lastTextBlock);
+                TextBlocks.Remove(lastTextBlock);
+            }
+            IsMeasuring = false;
+            CurrentLineCount = 0;
+        }
+
+        public void Reset()
+        {
+            IsMeasuring = false;
+            CurrentLineCount = 0;
+            DistanceFixed = 0;
+
+            foreach (Line line in Lines) 
+            {
+                mCanvas.Children.Remove(line);
+            }
+            Lines.Clear();
+            foreach (TextBlock textBlock in TextBlocks)
+            {
+                mCanvas.Children.Remove(textBlock);
+            }
+            TextBlocks.Clear();
+
+            SetVisibility(Visibility.Hidden);
         }
 
         public void SetVisibility(Visibility visibility)
@@ -54,27 +142,18 @@ namespace ImageView.Model
 
         private void MeasuringCanvasInit()
         {
-            mCanvas.Visibility = Visibility.Hidden;
+            Lines = new ObservableCollection<Line>();
+            TextBlocks = new ObservableCollection<TextBlock>();
+            Brush0 = new SolidColorBrush(Color.FromRgb(255, 0, 0));
+            Brush1 = new SolidColorBrush(Color.FromRgb(200, 150, 150));
 
-            mLine = new Line();
-            mTextBlock = new TextBlock();
+            Reset();
+        }
 
-            Brush redBrush = new SolidColorBrush(Color.FromRgb(255, 0, 0));
-
-            mLine.X1 = 0;
-            mLine.Y1 = 0;
-            mLine.X2 = 10;
-            mLine.Y2 = 10;
-            mLine.Stroke = redBrush;
-            mLine.StrokeThickness = 2;
-
-            mTextBlock.Text = string.Format("{0:F1}", Distance);
-            mTextBlock.Foreground = redBrush;
-            Canvas.SetLeft(mTextBlock, 10);
-            Canvas.SetTop(mTextBlock, 10);
-
-            mCanvas.Children.Add(mLine);
-            mCanvas.Children.Add(mTextBlock);
+        private double GetDistance(Line line) 
+        {
+            return Math.Sqrt((line.X1 - line.X2) * (line.X1 - line.X2) + (line.Y1 - line.Y2) * (line.Y1 - line.Y2));
         }
     }
 }
+
