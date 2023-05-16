@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <Folder Include="Core\" />
+    <Folder Include="Model\" />
   </ItemGroup>
 
   <ItemGroup>

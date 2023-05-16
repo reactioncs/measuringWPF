@@ -2,7 +2,6 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using ImageView.Model;
 
 namespace ImageView
 {
@@ -12,7 +11,7 @@ namespace ImageView
         public string InfoBottomLeft
         {
             get { return mInfoBottomLeft; }
-            set 
+            set
             {
                 mInfoBottomLeft = value;
                 OnPropertyChanged();
@@ -41,12 +40,23 @@ namespace ImageView
             }
         }
 
+        private Area mCurrentArea;
+        public Area CurrentArea
+        {
+            get { return mCurrentArea; }
+            set
+            {
+                mCurrentArea = value;
+                OnPropertyChanged();
+            }
+        }
+
         private double LengthDisplay
         {
             set => InfoBottomRight = string.Format("{0:F2}", value);
         }
 
-        private Point CurrentPosDisplay
+        public Point CurrentPosDisplay
         {
             set => InfoBottomLeft = $"{(int)value.X}, {(int)value.Y}";
         }
@@ -55,25 +65,13 @@ namespace ImageView
         public bool IsMeasuringMode
         {
             get { return mIsMeasuringMode; }
-            set 
-            { 
+            set
+            {
                 mIsMeasuringMode = value;
-                if (value == false)
-                {
-                    MeasuringCanvasModel?.SetVisibility(Visibility.Hidden);
-                    MeasuringCanvasModel?.Reset();
-                    Cursor = Cursors.Arrow;
-                }
-                else
-                {
-                    Cursor = Cursors.Cross;
-                }
+                Cursor = value ? Cursors.Cross : Cursors.Arrow;
+                OnPropertyChanged();
             }
         }
-
-        private Border mBorder;
-
-        public MeasuringCanvasModel MeasuringCanvasModel { get; set; }
 
         public RelayCommand MouseLeftButtonDownCommand { get; set; }
         public RelayCommand MouseRightButtonUpCommand { get; set; }
@@ -86,62 +84,48 @@ namespace ImageView
             InfoBottomLeft = "Left";
             LengthDisplay = 0;
             IsMeasuringMode = true;
+            CurrentArea = new Area();
 
             LoadedCommand = new RelayCommand(o =>
             {
                 RoutedEventArgs e = (RoutedEventArgs)o;
                 Grid grid = (Grid)e.Source;
 
-                mBorder = (Border)grid.FindName("Border");
-                Canvas measuringCanvas = (Canvas)grid.FindName("MeasuringCanvas");
-                MeasuringCanvasModel = new MeasuringCanvasModel(measuringCanvas);
+                CurrentArea = new Area()
+                {
+                    Width = grid.ActualWidth,
+                    Height = grid.ActualHeight
+                };
             });
 
             SizeChangedCommand = new RelayCommand(o =>
             {
-                if (IsMeasuringMode)
-                {
-                    MeasuringCanvasModel.Resize();
-                }
-            });
+                RoutedEventArgs e = (RoutedEventArgs)o;
+                Grid grid = (Grid)e.Source;
 
-            MouseLeftButtonDownCommand = new RelayCommand(o =>
-            {
-                MouseButtonEventArgs e = (MouseButtonEventArgs)o;
-                Point p = e.GetPosition(mBorder);
-
-                if (IsMeasuringMode)
+                CurrentArea = new Area()
                 {
-                    MeasuringCanvasModel.MouseDown(p);
-                }
+                    Width = grid.ActualWidth,
+                    Height = grid.ActualHeight
+                };
             });
 
             MouseMoveCommand = new RelayCommand(o =>
             {
                 MouseEventArgs e = (MouseEventArgs)o;
-                Point p = e.GetPosition(mBorder);
-
-                CurrentPosDisplay = p;
-
-                if (MeasuringCanvasModel.IsMeasuring && IsMeasuringMode)
-                {
-                    MeasuringCanvasModel.MouseMove(p);
-                    LengthDisplay = MeasuringCanvasModel.DistanceRefresh;
-                }
             });
+        }
+    }
 
-            MouseRightButtonUpCommand = new RelayCommand(o =>
-            {
-                MouseButtonEventArgs e = (MouseButtonEventArgs)o;
+    public class Area
+    {
+        public double Height { get; set; }
+        public double Width { get; set; }
 
-                if (MeasuringCanvasModel.IsMeasuring && IsMeasuringMode)
-                {
-                    MeasuringCanvasModel.MouseUp();
-                    LengthDisplay = MeasuringCanvasModel.DistanceFixed;
-
-                    e.Handled = true;
-                }
-            });
+        public Area()
+        {
+            Height = 0;
+            Width = 0;
         }
     }
 }

@@ -15,7 +15,10 @@
         <ContextMenu x:Key="ImageContextMenu">
             <MenuItem Header="Something 0"/>
             <MenuItem Header="Something 1"/>
-            <MenuItem Header="Toggle Measure" IsCheckable="True" IsChecked="{Binding IsMeasuringMode}"/>
+            <MenuItem x:Name="MeasuringMode"
+                      Header="Toggle Measure" 
+                      IsCheckable="True"
+                      IsChecked="{Binding IsMeasuringMode}"/>
         </ContextMenu>
     </Window.Resources>
 
@@ -34,26 +37,17 @@
                 <i:EventTrigger EventName="SizeChanged">
                     <i:InvokeCommandAction Command="{Binding SizeChangedCommand}" PassEventArgsToCommand="True"/>
                 </i:EventTrigger>
-                <i:EventTrigger EventName="MouseLeftButtonDown">
-                    <i:InvokeCommandAction Command="{Binding MouseLeftButtonDownCommand}" PassEventArgsToCommand="True"/>
-                </i:EventTrigger>
-                <i:EventTrigger EventName="MouseRightButtonUp">
-                    <i:InvokeCommandAction Command="{Binding MouseRightButtonUpCommand}" PassEventArgsToCommand="True"/>
-                </i:EventTrigger>
                 <i:EventTrigger EventName="MouseMove">
                     <i:InvokeCommandAction Command="{Binding MouseMoveCommand}" PassEventArgsToCommand="True"/>
                 </i:EventTrigger>
             </i:Interaction.Triggers>
 
-            <Border x:Name="Border"
-                    Background="Transparent"
-                    BorderBrush="Black"
-                    BorderThickness="1">
-                <Image Source="./Image/default.jpg" 
-                       Stretch="Fill"/>
-            </Border>
+            <local:ImageBoxView ImageSource="./Image/default.jpg"/>
 
-            <Canvas x:Name="MeasuringCanvas" ClipToBounds="True"/>
+            <local:MeasuringCanvasView IsMeasuringMode="{Binding IsMeasuringMode}"
+                                       CurrentArea="{Binding CurrentArea}"
+                                       CurrentPosition="{Binding CurrentPosDisplay, Mode=OneWayToSource}"/>
+
         </Grid>
 
         <Grid Grid.Row="1">
