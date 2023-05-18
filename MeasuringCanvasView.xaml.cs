@@ -15,14 +15,14 @@ namespace ImageView
     public partial class MeasuringCanvasView : UserControl
     {
         #region Properties
-        public Point CurrentPosition
+        public Point CurrentAbsolutePosition
         {
-            get { return (Point)GetValue(CurrentPositionProperty); }
-            set { SetValue(CurrentPositionProperty, value); }
+            get { return (Point)GetValue(CurrentAbsolutePositionProperty); }
+            set { SetValue(CurrentAbsolutePositionProperty, value); }
         }
 
-        public static readonly DependencyProperty CurrentPositionProperty =
-            DependencyProperty.Register("CurrentPosition", typeof(Point), typeof(MeasuringCanvasView), new PropertyMetadata(new Point(0, 0)));
+        public static readonly DependencyProperty CurrentAbsolutePositionProperty =
+            DependencyProperty.Register("CurrentAbsolutePosition", typeof(Point), typeof(MeasuringCanvasView), new PropertyMetadata(new Point(0, 0)));
 
         public bool IsMeasuringMode
         {
@@ -56,14 +56,14 @@ namespace ImageView
         private readonly Brush Brush0;
         private readonly Brush Brush1;
         private readonly ObservableCollection<MeasuringLine> Lines;
-        private TextBlock TextBlock;
+        private TextBlock DistanceIndicator;
 
         public MeasuringCanvasView()
         {
             InitializeComponent();
 
             Lines = new ObservableCollection<MeasuringLine>();
-            TextBlock = null;
+            DistanceIndicator = null;
             Brush0 = new SolidColorBrush(Color.FromRgb(255, 0, 0));
             Brush1 = new SolidColorBrush(Color.FromRgb(200, 150, 150));
 
@@ -73,21 +73,19 @@ namespace ImageView
         public static void OnCurrentChanging(DependencyObject sender, DependencyPropertyChangedEventArgs e)
         {
             Area newArea = (Area)e.NewValue;
-            Area oldArea = (Area)e.OldValue;
             MeasuringCanvasView measuringCanvasView = (MeasuringCanvasView)sender;
 
-            foreach (var line in measuringCanvasView.Lines) 
+            if (!measuringCanvasView.IsMeasuringMode) return;
+
+            foreach (var line in measuringCanvasView.Lines)
             {
-                line.Line.X1 = line.Line.X1 * newArea.Width / oldArea.Width;
-                line.Line.X2 = line.Line.X2 * newArea.Width / oldArea.Width;
-                line.Line.Y1 = line.Line.Y1 * newArea.Height / oldArea.Height;
-                line.Line.Y2 = line.Line.Y2 * newArea.Height / oldArea.Height;
+                line.UpdateCanvasPosition(newArea);
             }
 
-            if (measuringCanvasView.Lines.Count == 0)
-                return;
-            Canvas.SetLeft(measuringCanvasView.TextBlock, measuringCanvasView.Lines.Last().Line.X2 + 3);
-            Canvas.SetTop(measuringCanvasView.TextBlock, measuringCanvasView.Lines.Last().Line.Y2 + 3);
+            if (measuringCanvasView.Lines.Count == 0) return;
+            MeasuringLine lastLine = measuringCanvasView.Lines.Last();
+            Canvas.SetLeft(measuringCanvasView.DistanceIndicator, lastLine.Line.X2 + 3);
+            Canvas.SetTop(measuringCanvasView.DistanceIndicator, lastLine.Line.Y2 + 3);
         }
 
         private void DoMouseMove(object sender, MouseEventArgs e)
@@ -96,7 +94,11 @@ namespace ImageView
                 return;
 
             Point p = e.GetPosition(sender as Canvas);
-            CurrentPosition = p;
+            CurrentAbsolutePosition = new()
+            {
+                X = p.X / CurrentArea.Width,
+                Y = p.Y / CurrentArea.Height
+            };
 
             if (!IsMeasuring) 
                 return;
@@ -107,9 +109,9 @@ namespace ImageView
 
             DistanceRefresh = DistanceFixed + lastLine.Distance;
 
-            Canvas.SetLeft(TextBlock, p.X + 3);
-            Canvas.SetTop(TextBlock, p.Y + 3);
-            TextBlock.Text = string.Format("{0:F1} um", DistanceRefresh);
+            Canvas.SetLeft(DistanceIndicator, p.X + 3);
+            Canvas.SetTop(DistanceIndicator, p.Y + 3);
+            DistanceIndicator.Text = string.Format("{0:F1}", DistanceRefresh);
         }
 
         private void DoMouseRightButtonUp(object sender, MouseButtonEventArgs e)
@@ -124,14 +126,14 @@ namespace ImageView
             if (Lines.Count > 0)
             {
                 MeasuringLine nextLastLine = Lines.Last();
-                TextBlock.Text = string.Format("{0:F1} um", DistanceFixed);
-                Canvas.SetLeft(TextBlock, nextLastLine.P2.X);
-                Canvas.SetTop(TextBlock, nextLastLine.P2.Y);
+                DistanceIndicator.Text = string.Format("{0:F1}", DistanceFixed);
+                Canvas.SetLeft(DistanceIndicator, nextLastLine.P2.X);
+                Canvas.SetTop(DistanceIndicator, nextLastLine.P2.Y);
             }
             else
             {
-                MeasuringCanvas.Children.Remove(TextBlock);
-                TextBlock = null;
+                MeasuringCanvas.Children.Remove(DistanceIndicator);
+                DistanceIndicator = null;
             }
 
             IsMeasuring = false;
@@ -141,12 +143,15 @@ namespace ImageView
 
         private void DoMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (!IsMeasuringMode) 
+            if (!IsMeasuringMode)
                 return;
 
-            Point p = e.GetPosition(sender as Canvas);
+            if (!IsMeasuring)
+                Reset();
 
-            Point P1;
+            Point p = e.GetPosition(sender as FrameworkElement);
+
+            Point P1, P2;
 
             if (Lines.Count > 0)
             {
@@ -155,25 +160,27 @@ namespace ImageView
                 DistanceFixed += lastLine.Distance;
 
                 lastLine.Line.Stroke = Brush0;
+                lastLine.UpdateAbsolutePosition(CurrentArea);
             }
             else
             {
                 P1 = p;
 
-                TextBlock = new TextBlock()
+                DistanceIndicator = new TextBlock()
                 {
-                    Text = "0.0 um",
+                    Text = "0.0",
                     Foreground = Brush0,
                     FontFamily = new FontFamily("Consolas"),
                     FontSize = 16
                 };
-                Canvas.SetLeft(TextBlock, p.X + 3);
-                Canvas.SetTop(TextBlock, p.Y + 3);
-                MeasuringCanvas.Children.Add(TextBlock);
+                Canvas.SetLeft(DistanceIndicator, p.X + 3);
+                Canvas.SetTop(DistanceIndicator, p.Y + 3);
+                MeasuringCanvas.Children.Add(DistanceIndicator);
             }
-            Point P2 = p;
+            P2 = p;
 
-            MeasuringLine newLine = new MeasuringLine(P1, P2, Brush1);
+            MeasuringLine newLine = new(P1, P2, Brush1);
+            newLine.UpdateAbsolutePosition(CurrentArea);
             Lines.Add(newLine);
             MeasuringCanvas.Children.Add(newLine.Line);
 
@@ -191,10 +198,10 @@ namespace ImageView
             }
             Lines.Clear();
 
-            if (TextBlock != null) 
+            if (DistanceIndicator != null) 
             {
-                MeasuringCanvas.Children.Remove(TextBlock);
-                TextBlock = null;
+                MeasuringCanvas.Children.Remove(DistanceIndicator);
+                DistanceIndicator = null;
             }
         }
     }
@@ -205,7 +212,7 @@ namespace ImageView
 
         public Point P1
         {
-            get { return new Point(Line.X1, Line.Y1); }
+            get => new Point(Line.X1, Line.Y1);
             set
             {
                 Line.X1 = value.X;
@@ -215,7 +222,7 @@ namespace ImageView
 
         public Point P2
         {
-            get { return new Point(Line.X2, Line.Y2); }
+            get => new Point(Line.X2, Line.Y2);
             set
             {
                 Line.X2 = value.X;
@@ -223,14 +230,15 @@ namespace ImageView
             }
         }
 
-        public Point P1Real { get; set; }
-        public Point P2Real { get; set; }
+        // Absolute Position
+        public Point P1a { get; set; }
+        public Point P2a { get; set; }
 
         public double Distance => Math.Sqrt((Line.X1 - Line.X2) * (Line.X1 - Line.X2) + (Line.Y1 - Line.Y2) * (Line.Y1 - Line.Y2));
 
         public MeasuringLine(Point P1, Point P2, Brush brush)
         {
-            Line = new Line()
+            Line = new ()
             {
                 Stroke = brush,
                 StrokeThickness = 3
@@ -239,8 +247,28 @@ namespace ImageView
             this.P2 = P2;
         }
 
-        //private Point CanvasToReal(Point P, Area area, double canvasHeight, double canvasWidth)
-        //{
-        //}
+        public void UpdateAbsolutePosition(Area area)
+        {
+            P1a = CanvasToAbsolute(P1, area);
+            P2a = CanvasToAbsolute(P2, area);
+        }
+
+        public void UpdateCanvasPosition(Area area)
+        {
+            P1 = AbsoluteToCanvas(P1a, area);
+            P2 = AbsoluteToCanvas(P2a, area);
+        }
+
+        private static Point AbsoluteToCanvas(Point p, Area area) => new()
+        {
+            X = area.Width * p.X,
+            Y = area.Height * p.Y
+        };
+
+        private static Point CanvasToAbsolute(Point p, Area area) => new()
+        {
+            X = p.X / area.Width,
+            Y = p.Y / area.Height
+        };
     }
 }
