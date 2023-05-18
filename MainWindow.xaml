@@ -46,7 +46,8 @@
 
             <local:MeasuringCanvasView IsMeasuringMode="{Binding IsMeasuringMode}"
                                        CurrentArea="{Binding CurrentArea}"
-                                       CurrentAbsolutePosition="{Binding CurrentPosDisplay, Mode=OneWayToSource}"/>
+                                       CurrentAbsolutePosition="{Binding CurrentPosDisplay, Mode=OneWayToSource}"
+                                       CurrentAbsoluteLength="{Binding LengthDisplay, Mode=OneWayToSource}"/>
 
         </Grid>
 

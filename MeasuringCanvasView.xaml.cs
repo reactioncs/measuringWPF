@@ -24,6 +24,15 @@ namespace ImageView
         public static readonly DependencyProperty CurrentAbsolutePositionProperty =
             DependencyProperty.Register("CurrentAbsolutePosition", typeof(Point), typeof(MeasuringCanvasView), new PropertyMetadata(new Point(0, 0)));
 
+        public double CurrentAbsoluteLength
+        {
+            get { return (double)GetValue(CurrentAbsoluteLengthProperty); }
+            set { SetValue(CurrentAbsoluteLengthProperty, value); }
+        }
+
+        public static readonly DependencyProperty CurrentAbsoluteLengthProperty =
+            DependencyProperty.Register("CurrentAbsoluteLength", typeof(double), typeof(MeasuringCanvasView), new PropertyMetadata(0.0));
+
         public bool IsMeasuringMode
         {
             get { return (bool)GetValue(IsMeasuringModeProperty); }
@@ -49,8 +58,8 @@ namespace ImageView
             DependencyProperty.Register("CurrentArea", typeof(Area), typeof(MeasuringCanvasView), new PropertyMetadata(new Area(), new PropertyChangedCallback((sender, e) => OnCurrentChanging(sender, e))));
         #endregion
 
-        public double DistanceRefresh { get; set; }
-        public double DistanceFixed { get; set; }
+        public double LengthRefresh { get; set; }
+        public double LengthFixed { get; set; }
         public bool IsMeasuring { get; set; }
 
         private readonly Brush Brush0;
@@ -106,12 +115,13 @@ namespace ImageView
             MeasuringLine lastLine = Lines.Last();
 
             lastLine.P2 = p;
-
-            DistanceRefresh = DistanceFixed + lastLine.Distance;
+            lastLine.UpdateAbsolutePosition(CurrentArea);
+            LengthRefresh = LengthFixed + lastLine.DistanceAbsolute;
+            CurrentAbsoluteLength = LengthRefresh;
 
             Canvas.SetLeft(DistanceIndicator, p.X + 3);
             Canvas.SetTop(DistanceIndicator, p.Y + 3);
-            DistanceIndicator.Text = string.Format("{0:F1}", DistanceRefresh);
+            DistanceIndicator.Text = string.Format("{0:F3}", LengthRefresh);
         }
 
         private void DoMouseRightButtonUp(object sender, MouseButtonEventArgs e)
@@ -126,7 +136,8 @@ namespace ImageView
             if (Lines.Count > 0)
             {
                 MeasuringLine nextLastLine = Lines.Last();
-                DistanceIndicator.Text = string.Format("{0:F1}", DistanceFixed);
+                DistanceIndicator.Text = string.Format("{0:F3}", LengthFixed);
+                CurrentAbsoluteLength = LengthFixed;
                 Canvas.SetLeft(DistanceIndicator, nextLastLine.P2.X);
                 Canvas.SetTop(DistanceIndicator, nextLastLine.P2.Y);
             }
@@ -157,10 +168,10 @@ namespace ImageView
             {
                 MeasuringLine lastLine = Lines.Last();
                 P1 = lastLine.P2;
-                DistanceFixed += lastLine.Distance;
 
                 lastLine.Line.Stroke = Brush0;
                 lastLine.UpdateAbsolutePosition(CurrentArea);
+                LengthFixed += lastLine.DistanceAbsolute;
             }
             else
             {
@@ -190,7 +201,7 @@ namespace ImageView
         public void Reset()
         {
             IsMeasuring = false;
-            DistanceFixed = 0;
+            LengthFixed = 0;
 
             foreach (MeasuringLine line in Lines)
             {
@@ -234,7 +245,8 @@ namespace ImageView
         public Point P1a { get; set; }
         public Point P2a { get; set; }
 
-        public double Distance => Math.Sqrt((Line.X1 - Line.X2) * (Line.X1 - Line.X2) + (Line.Y1 - Line.Y2) * (Line.Y1 - Line.Y2));
+        public double Distance => DistanceBetweenTwoPoints(P1, P2);
+        public double DistanceAbsolute => DistanceBetweenTwoPoints(P1a, P2a);
 
         public MeasuringLine(Point P1, Point P2, Brush brush)
         {
@@ -270,5 +282,10 @@ namespace ImageView
             X = p.X / area.Width,
             Y = p.Y / area.Height
         };
+
+        private static double DistanceBetweenTwoPoints(Point p1, Point p2)
+        {
+            return Math.Sqrt((p1.X - p2.X) * (p1.X - p2.X) + (p1.Y - p2.Y) * (p1.Y - p2.Y));
+        }
     }
 }

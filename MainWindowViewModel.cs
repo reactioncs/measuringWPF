@@ -50,7 +50,7 @@ namespace ImageView
             }
         }
 
-        private double LengthDisplay
+        public double LengthDisplay
         {
             set => InfoBottomRight = string.Format("{0:F2}", value);
         }
