@@ -78,7 +78,7 @@ namespace ImageView
         }
 
         public static readonly DependencyProperty CurrentAreaProperty =
-            DependencyProperty.Register("CurrentArea", typeof(Area), typeof(MeasuringCanvasView), new PropertyMetadata(new Area(), new PropertyChangedCallback((sender, e) => OnCurrentChanging(sender, e))));
+            DependencyProperty.Register("CurrentArea", typeof(Area), typeof(MeasuringCanvasView), new PropertyMetadata(new Area(), new PropertyChangedCallback((sender, e) => OnCurrentAreaChanging(sender, e))));
 
         #endregion
 
@@ -100,7 +100,7 @@ namespace ImageView
             Reset();
         }
 
-        public static void OnCurrentChanging(DependencyObject sender, DependencyPropertyChangedEventArgs e)
+        public static void OnCurrentAreaChanging(DependencyObject sender, DependencyPropertyChangedEventArgs e)
         {
             Area newArea = (Area)e.NewValue;
             MeasuringCanvasView measuringCanvasView = (MeasuringCanvasView)sender;
@@ -124,7 +124,7 @@ namespace ImageView
             if (!IsMeasuringMode) 
                 return;
 
-            Point p = e.GetPosition(sender as Canvas);
+            Point p = e.GetPosition(sender as FrameworkElement);
             CurrentAbsolutePosition = new()
             {
                 X = p.X / CurrentArea.Width,
