@@ -42,10 +42,33 @@ namespace ImageView
         public static readonly DependencyProperty IsMeasuringModeProperty =
             DependencyProperty.Register("IsMeasuringMode", typeof(bool), typeof(MeasuringCanvasView), new PropertyMetadata(true, new PropertyChangedCallback((sender, e) =>
             {
-                Visibility visibility = (bool)e.NewValue ? Visibility.Visible : Visibility.Hidden;
                 MeasuringCanvasView measuringCanvasView = (MeasuringCanvasView)sender;
-                measuringCanvasView.Visibility = visibility;
+                if ((bool)e.NewValue)
+                {
+                    measuringCanvasView.ModeIndicator.Visibility = Visibility.Visible;
+                    measuringCanvasView.CountIndicator.Visibility = Visibility.Visible;
+                }
+                else
+                {
+                    measuringCanvasView.ModeIndicator.Visibility = Visibility.Hidden;
+                    if (measuringCanvasView.Measurements.Count <= 1 && !measuringCanvasView.IsMeasuringMode)
+                        measuringCanvasView.CountIndicator.Visibility = Visibility.Hidden;
+                }
+            })));
+
+        public byte ClearMeasurementCount
+        {
+            get { return (byte)GetValue(ClearMeasurementCountProperty); }
+            set { SetValue(ClearMeasurementCountProperty, value); }
+        }
+
+        public static readonly DependencyProperty ClearMeasurementCountProperty =
+            DependencyProperty.Register("ClearMeasurementCount", typeof(byte), typeof(MeasuringCanvasView), new PropertyMetadata((byte)0, new PropertyChangedCallback((sender, e) =>
+            {
+                MeasuringCanvasView measuringCanvasView = (MeasuringCanvasView)sender;
                 measuringCanvasView.Reset();
+                if (measuringCanvasView.Measurements.Count <= 1 && !measuringCanvasView.IsMeasuringMode)
+                    measuringCanvasView.CountIndicator.Visibility = Visibility.Hidden;
             })));
 
         public Area CurrentArea
@@ -56,23 +79,21 @@ namespace ImageView
 
         public static readonly DependencyProperty CurrentAreaProperty =
             DependencyProperty.Register("CurrentArea", typeof(Area), typeof(MeasuringCanvasView), new PropertyMetadata(new Area(), new PropertyChangedCallback((sender, e) => OnCurrentChanging(sender, e))));
+
         #endregion
 
-        public double LengthRefresh { get; set; }
-        public double LengthFixed { get; set; }
         public bool IsMeasuring { get; set; }
 
         private readonly Brush Brush0;
         private readonly Brush Brush1;
-        private readonly ObservableCollection<MeasuringLine> Lines;
-        private TextBlock DistanceIndicator;
+
+        private readonly ObservableCollection<Measurement> Measurements;
 
         public MeasuringCanvasView()
         {
             InitializeComponent();
 
-            Lines = new ObservableCollection<MeasuringLine>();
-            DistanceIndicator = null;
+            Measurements = new ObservableCollection<Measurement>();
             Brush0 = new SolidColorBrush(Color.FromRgb(255, 0, 0));
             Brush1 = new SolidColorBrush(Color.FromRgb(200, 150, 150));
 
@@ -84,17 +105,18 @@ namespace ImageView
             Area newArea = (Area)e.NewValue;
             MeasuringCanvasView measuringCanvasView = (MeasuringCanvasView)sender;
 
-            if (!measuringCanvasView.IsMeasuringMode) return;
-
-            foreach (var line in measuringCanvasView.Lines)
+            foreach (Measurement measurement in measuringCanvasView.Measurements)
             {
-                line.UpdateCanvasPosition(newArea);
-            }
+                foreach (MeasuringLine line in measurement.Lines)
+                {
+                    line.UpdateCanvasPosition(newArea);
+                }
 
-            if (measuringCanvasView.Lines.Count == 0) return;
-            MeasuringLine lastLine = measuringCanvasView.Lines.Last();
-            Canvas.SetLeft(measuringCanvasView.DistanceIndicator, lastLine.Line.X2 + 3);
-            Canvas.SetTop(measuringCanvasView.DistanceIndicator, lastLine.Line.Y2 + 3);
+                if (measurement.Lines.Count == 0) continue;
+                MeasuringLine lastLine = measurement.Lines.Last();
+                Canvas.SetLeft(measurement.LengthIndicator, lastLine.Line.X2 + 3);
+                Canvas.SetTop(measurement.LengthIndicator, lastLine.Line.Y2 + 3);
+            }
         }
 
         private void DoMouseMove(object sender, MouseEventArgs e)
@@ -112,16 +134,16 @@ namespace ImageView
             if (!IsMeasuring) 
                 return;
 
-            MeasuringLine lastLine = Lines.Last();
+            Measurement measurement = Measurements.Last();
+            MeasuringLine lastLine = measurement.Lines.Last();
 
             lastLine.P2 = p;
             lastLine.UpdateAbsolutePosition(CurrentArea);
-            LengthRefresh = LengthFixed + lastLine.DistanceAbsolute;
-            CurrentAbsoluteLength = LengthRefresh;
+            measurement.UpdateLength();
+            CurrentAbsoluteLength = measurement.TotalLength;
 
-            Canvas.SetLeft(DistanceIndicator, p.X + 3);
-            Canvas.SetTop(DistanceIndicator, p.Y + 3);
-            DistanceIndicator.Text = string.Format("{0:F3}", LengthRefresh);
+            Canvas.SetLeft(measurement.LengthIndicator, p.X + 3);
+            Canvas.SetTop(measurement.LengthIndicator, p.Y + 3);
         }
 
         private void DoMouseRightButtonUp(object sender, MouseButtonEventArgs e)
@@ -129,22 +151,24 @@ namespace ImageView
             if (!IsMeasuringMode || !IsMeasuring) 
                 return;
 
-            MeasuringLine lastLine = Lines.Last();
+            Measurement measurement = Measurements.Last();
+            MeasuringLine lastLine = measurement.Lines.Last();
             MeasuringCanvas.Children.Remove(lastLine.Line);
-            Lines.Remove(lastLine);
+            measurement.Lines.Remove(lastLine);
 
-            if (Lines.Count > 0)
+            if (measurement.Lines.Count > 0)
             {
-                MeasuringLine nextLastLine = Lines.Last();
-                DistanceIndicator.Text = string.Format("{0:F3}", LengthFixed);
-                CurrentAbsoluteLength = LengthFixed;
-                Canvas.SetLeft(DistanceIndicator, nextLastLine.P2.X);
-                Canvas.SetTop(DistanceIndicator, nextLastLine.P2.Y);
+                MeasuringLine nextLastLine = measurement.Lines.Last();
+                lastLine.UpdateAbsolutePosition(CurrentArea);
+                measurement.UpdateLength();
+                CurrentAbsoluteLength = measurement.TotalLength;
+                Canvas.SetLeft(measurement.LengthIndicator, nextLastLine.P2.X);
+                Canvas.SetTop(measurement.LengthIndicator, nextLastLine.P2.Y);
             }
             else
             {
-                MeasuringCanvas.Children.Remove(DistanceIndicator);
-                DistanceIndicator = null;
+                measurement.RemoveFromCanvas(MeasuringCanvas);
+                Measurements.Remove(measurement);
             }
 
             IsMeasuring = false;
@@ -158,41 +182,38 @@ namespace ImageView
                 return;
 
             if (!IsMeasuring)
-                Reset();
+            {
+                Measurements.Add(new(Brush0));
+                CountIndicator.Text = $"Total Measurement: {Measurements.Count - 1}";
+            }
 
             Point p = e.GetPosition(sender as FrameworkElement);
 
+            Measurement measurement = Measurements.Last();
+
             Point P1, P2;
 
-            if (Lines.Count > 0)
+            if (measurement.Lines.Count > 0)
             {
-                MeasuringLine lastLine = Lines.Last();
+                MeasuringLine lastLine = measurement.Lines.Last();
                 P1 = lastLine.P2;
 
                 lastLine.Line.Stroke = Brush0;
                 lastLine.UpdateAbsolutePosition(CurrentArea);
-                LengthFixed += lastLine.DistanceAbsolute;
             }
             else
             {
                 P1 = p;
 
-                DistanceIndicator = new TextBlock()
-                {
-                    Text = "0.0",
-                    Foreground = Brush0,
-                    FontFamily = new FontFamily("Consolas"),
-                    FontSize = 16
-                };
-                Canvas.SetLeft(DistanceIndicator, p.X + 3);
-                Canvas.SetTop(DistanceIndicator, p.Y + 3);
-                MeasuringCanvas.Children.Add(DistanceIndicator);
+                Canvas.SetLeft(measurement.LengthIndicator, p.X + 3);
+                Canvas.SetTop(measurement.LengthIndicator, p.Y + 3);
+                MeasuringCanvas.Children.Add(measurement.LengthIndicator);
             }
             P2 = p;
 
             MeasuringLine newLine = new(P1, P2, Brush1);
             newLine.UpdateAbsolutePosition(CurrentArea);
-            Lines.Add(newLine);
+            measurement.Lines.Add(newLine);
             MeasuringCanvas.Children.Add(newLine.Line);
 
             IsMeasuring = true;
@@ -201,18 +222,65 @@ namespace ImageView
         public void Reset()
         {
             IsMeasuring = false;
-            LengthFixed = 0;
 
+            foreach (Measurement measurement in Measurements)
+            {
+                measurement.RemoveFromCanvas(MeasuringCanvas);
+            }
+
+            Measurements.Clear();
+
+            Measurements.Add(new(Brush0));
+
+            CountIndicator.Text = "Total Measurement: 0";
+        }
+    }
+
+    public class Measurement
+    {
+        public ObservableCollection<MeasuringLine> Lines;
+        public TextBlock LengthIndicator;
+
+        public readonly Canvas MeasuringCanvas;
+        public readonly Brush Brush0;
+        public readonly Brush Brush1;
+
+        public double TotalLength
+        {
+            get
+            {
+                double len = 0;
+                foreach (MeasuringLine line in Lines)
+                {
+                    len += line.DistanceAbsolute;
+                }
+                return len;
+            }
+        }
+
+        public Measurement(Brush brush)
+        {
+            Lines = new();
+            LengthIndicator = new()
+            {
+                Text = "0.000",
+                Foreground = brush,
+                FontFamily = new FontFamily("Consolas"),
+                FontSize = 16
+            };
+        }
+
+        public void UpdateLength()
+        {
+            LengthIndicator.Text = string.Format("{0:F3}", TotalLength);
+        }
+
+        public void RemoveFromCanvas(Canvas canvas)
+        {
+            canvas.Children.Remove(LengthIndicator);
             foreach (MeasuringLine line in Lines)
             {
-                MeasuringCanvas.Children.Remove(line.Line);
-            }
-            Lines.Clear();
-
-            if (DistanceIndicator != null) 
-            {
-                MeasuringCanvas.Children.Remove(DistanceIndicator);
-                DistanceIndicator = null;
+                canvas.Children.Remove(line.Line);
             }
         }
     }

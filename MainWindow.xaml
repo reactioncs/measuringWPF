@@ -15,10 +15,11 @@
         <ContextMenu x:Key="ImageContextMenu">
             <MenuItem Header="Something 0"/>
             <MenuItem Header="Something 1"/>
-            <MenuItem x:Name="MeasuringMode"
-                      Header="Toggle Measure" 
+            <MenuItem Header="Measure Mode" 
                       IsCheckable="True"
                       IsChecked="{Binding IsMeasuringMode}"/>
+            <MenuItem Header="Clear all Measurment"
+                      Command="{Binding ClearMeasurementCommand}"/>
         </ContextMenu>
     </Window.Resources>
 
@@ -45,10 +46,10 @@
             <local:ImageBoxView ImageSource="./Image/default.jpg"/>
 
             <local:MeasuringCanvasView IsMeasuringMode="{Binding IsMeasuringMode}"
+                                       ClearMeasurementCount="{Binding ClearMeasurementCount}"
                                        CurrentArea="{Binding CurrentArea}"
                                        CurrentAbsolutePosition="{Binding CurrentPosDisplay, Mode=OneWayToSource}"
                                        CurrentAbsoluteLength="{Binding LengthDisplay, Mode=OneWayToSource}"/>
-
         </Grid>
 
         <Grid Grid.Row="1">

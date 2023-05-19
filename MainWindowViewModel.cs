@@ -72,9 +72,21 @@ namespace ImageView
             }
         }
 
+        private byte mClearMeasurementCount;
+        public byte ClearMeasurementCount
+        {
+            get { return mClearMeasurementCount; }
+            set
+            {
+                mClearMeasurementCount = value;
+                OnPropertyChanged();
+            }
+        }
+
         public RelayCommand MouseMoveCommand { get; set; }
         public RelayCommand LoadedCommand { get; set; }
         public RelayCommand SizeChangedCommand { get; set; }
+        public RelayCommand ClearMeasurementCommand { get; set; }
 
         public MainWindowViewModel()
         {
@@ -112,6 +124,11 @@ namespace ImageView
             MouseMoveCommand = new RelayCommand(o =>
             {
                 MouseEventArgs e = (MouseEventArgs)o;
+            });
+
+            ClearMeasurementCommand = new RelayCommand(o =>
+            {
+                ClearMeasurementCount += 1;
             });
         }
     }
